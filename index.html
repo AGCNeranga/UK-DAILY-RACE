@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VVIP Daily Racing Programme</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .vvip-gradient { background: linear-gradient(135deg, #f0f4f0 0%, #fffbeb 100%); }
+        .table-input { border: none; width: 100%; background: transparent; font-weight: 600; color: #1e293b; outline: none; }
+        .drag-handle { cursor: grab; color: #94a3b8; }
+        .drag-handle:active { cursor: grabbing; }
+        .row-ghost { background-color: #fefce8 !important; opacity: 0.5; }
+        
+        /* Custom Checkbox Colors */
+        .check-p { accent-color: #16a34a; }
+        .check-np { accent-color: #dc2626; }
+        
+        .btn-premium {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .btn-premium:hover { transform: translateY(-1px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+    </style>
+</head>
+<body class="vvip-gradient min-h-screen p-4 md:p-8">
+
+    <div id="capture-area" class="max-w-7xl mx-auto bg-white shadow-2xl rounded-2xl overflow-hidden border border-gray-200">
+        <div class="bg-white px-8 py-6 border-b-2 border-green-100 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center text-white font-bold text-xl">VP</div>
+                <h1 class="text-3xl font-black italic tracking-tighter text-gray-800 uppercase">Daily Racing Programme</h1>
+            </div>
+            
+            <div class="flex flex-wrap gap-3">
+                <input type="text" id="progDate" value="14/01/2026" class="border-2 border-yellow-200 rounded-lg p-2 font-bold w-40 text-center focus:border-green-500 transition-colors bg-yellow-50">
+                <button onclick="generatePDF()" class="btn-premium bg-green-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-green-700 uppercase text-sm">PDF Output</button>
+                <button onclick="generatePNG()" class="btn-premium bg-yellow-500 text-white px-6 py-2 rounded-lg font-bold hover:bg-yellow-600 uppercase text-sm">PNG Image</button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2">
+            <div class="border-r border-gray-100">
+                <div class="bg-green-50 p-4 flex justify-between items-center border-b border-green-100">
+                    <span class="font-black text-green-800 flex items-center gap-2">
+                        <span class="w-2 h-2 bg-green-500 rounded-full"></span> HORSE MEETINGS
+                    </span>
+                    <button onclick="addRow('horseBody')" class="bg-green-600 text-white text-xs px-3 py-1.5 rounded-md font-bold hover:bg-green-700 transition-all">+ ADD NEW</button>
+                </div>
+                <table class="w-full">
+                    <thead class="bg-gray-50 text-[10px] uppercase text-gray-500 font-bold border-b border-gray-100">
+                        <tr>
+                            <th class="p-3 w-10"></th>
+                            <th class="p-3 text-left">Meeting</th>
+                            <th class="p-3 w-20 text-center">Printed</th>
+                            <th class="p-3 w-20 text-center">Not Printed</th>
+                            <th class="p-3 w-10"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="horseBody">
+                        <tr class="border-b border-gray-50 group hover:bg-yellow-50/50 transition-colors">
+                            <td class="p-3 text-center drag-handle">⋮⋮</td>
+                            <td class="p-3"><input type="text" class="table-input" value="KEMPTON(UK)"></td>
+                            <td class="p-3 text-center"><input type="checkbox" class="check-p w-4 h-4" checked></td>
+                            <td class="p-3 text-center"><input type="checkbox" class="check-np w-4 h-4"></td>
+                            <td class="p-3"><button onclick="this.parentElement.parentElement.remove()" class="text-gray-300 hover:text-red-500 transition-colors">✕</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div>
+                <div class="bg-yellow-50 p-4 flex justify-between items-center border-b border-yellow-100">
+                    <span class="font-black text-yellow-800 flex items-center gap-2">
+                        <span class="w-2 h-2 bg-yellow-500 rounded-full"></span> GREYHOUND MEETINGS
+                    </span>
+                    <button onclick="addRow('greyBody')" class="bg-yellow-600 text-white text-xs px-3 py-1.5 rounded-md font-bold hover:bg-yellow-700 transition-all">+ ADD NEW</button>
+                </div>
+                <table class="w-full">
+                    <thead class="bg-gray-50 text-[10px] uppercase text-gray-500 font-bold border-b border-gray-100">
+                        <tr>
+                            <th class="p-3 w-10"></th>
+                            <th class="p-3 text-left">Meeting</th>
+                            <th class="p-3 w-20 text-center">Printed</th>
+                            <th class="p-3 w-20 text-center">Not Printed</th>
+                            <th class="p-3 w-10"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="greyBody">
+                        <tr class="border-b border-gray-50 group hover:bg-green-50/50 transition-colors">
+                            <td class="p-3 text-center drag-handle">⋮⋮</td>
+                            <td class="p-3"><input type="text" class="table-input" value="DONCASTER(UK)"></td>
+                            <td class="p-3 text-center"><input type="checkbox" class="check-p w-4 h-4" checked></td>
+                            <td class="p-3 text-center"><input type="checkbox" class="check-np w-4 h-4"></td>
+                            <td class="p-3"><button onclick="this.parentElement.parentElement.remove()" class="text-gray-300 hover:text-red-500 transition-colors">✕</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Drag and Drop
+        const horseSort = new Sortable(document.getElementById('horseBody'), { animation: 150, handle: '.drag-handle', ghostClass: 'row-ghost' });
+        const greySort = new Sortable(document.getElementById('greyBody'), { animation: 150, handle: '.drag-handle', ghostClass: 'row-ghost' });
+
+        function addRow(id) {
+            const body = document.getElementById(id);
+            const tr = document.createElement('tr');
+            tr.className = "border-b border-gray-50 group hover:bg-gray-50 transition-colors";
+            tr.innerHTML = `
+                <td class="p-3 text-center drag-handle">⋮⋮</td>
+                <td class="p-3"><input type="text" class="table-input" placeholder="MEETING NAME"></td>
+                <td class="p-3 text-center"><input type="checkbox" class="check-p w-4 h-4"></td>
+                <td class="p-3 text-center"><input type="checkbox" class="check-np w-4 h-4"></td>
+                <td class="p-3"><button onclick="this.parentElement.parentElement.remove()" class="text-gray-300 hover:text-red-500 transition-colors">✕</button></td>
+            `;
+            body.appendChild(tr);
+        }
+
+        async function generatePNG() {
+            const element = document.getElementById('capture-area');
+            // Hide action elements temporarily
+            const actions = document.querySelectorAll('button, .drag-handle');
+            actions.forEach(el => el.style.opacity = '0');
+            
+            const canvas = await html2canvas(element, { scale: 2, backgroundColor: '#f8fafc' });
+            const link = document.createElement('a');
+            link.download = `Racing_Programme_${document.getElementById('progDate').value}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+            
+            actions.forEach(el => el.style.opacity = '1');
+        }
+
+        function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('l', 'mm', 'a4');
+            const progDate = document.getElementById('progDate').value;
+
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(22);
+            doc.text("DAILY RACING PROGRAMME", 148, 15, { align: "center" });
+
+            const getTableData = (tbodyId) => {
+                let total = 0, p = 0, np = 0;
+                const rows = Array.from(document.querySelectorAll(`#${tbodyId} tr`)).map((tr, index) => {
+                    const inputs = tr.querySelectorAll('input');
+                    if(inputs[0].value.trim() !== "") total++;
+                    if(inputs[1].checked) p++;
+                    if(inputs[2].checked) np++;
+                    
+                    return [
+                        `(${index + 1})`, 
+                        inputs[0].value.toUpperCase(), 
+                        {content: "", drawMark: inputs[1].checked, markType: 'check'}, 
+                        {content: "", drawMark: inputs[2].checked, markType: 'x'}
+                    ];
+                });
+                return { rows, total, p, np };
+            };
+
+            const horse = getTableData('horseBody');
+            const grey = getTableData('greyBody');
+            const max = Math.max(horse.rows.length, grey.rows.length);
+            const finalBody = [];
+
+            for(let i=0; i<max; i++) {
+                const h = horse.rows[i] || ["", "", {content:""}, {content:""}];
+                const g = grey.rows[i] || ["", "", {content:""}, {content:""}];
+                finalBody.push([i===0 ? progDate : "", h[0], h[1], h[2], h[3], g[0], g[1], g[2], g[3]]);
+            }
+
+            finalBody.push([
+                {content: 'TOTAL', styles: {fontStyle: 'bold', fillColor: [240, 240, 240]}},
+                {content: horse.total.toString(), styles: {fontStyle: 'bold', halign: 'center'}},
+                '',
+                {content: horse.p.toString(), styles: {fontStyle: 'bold', halign: 'center'}},
+                {content: horse.np.toString(), styles: {fontStyle: 'bold', halign: 'center'}},
+                {content: grey.total.toString(), styles: {fontStyle: 'bold', halign: 'center'}},
+                '',
+                {content: grey.p.toString(), styles: {fontStyle: 'bold', halign: 'center'}},
+                {content: grey.np.toString(), styles: {fontStyle: 'bold', halign: 'center'}}
+            ]);
+
+            doc.autoTable({
+                startY: 25,
+                head: [['DATE', '', 'HORSE MEETINGS', 'PRINTED', 'NOT PRINTED', '', 'GREYHOUND MEETINGS', 'PRINTED', 'NOT PRINTED']],
+                body: finalBody,
+                theme: 'grid',
+                styles: { font: "helvetica", lineColor: [0, 0, 0], lineWidth: 0.25, textColor: [0, 0, 0], fontSize: 9 },
+                headStyles: { fillColor: [240, 250, 240], fontStyle: 'bold', halign: 'center' },
+                columnStyles: {
+                    0: {cellWidth: 25}, 1: {cellWidth: 10, halign: 'center'}, 2: {cellWidth: 70}, 3: {cellWidth: 20}, 4: {cellWidth: 20},
+                    5: {cellWidth: 10, halign: 'center'}, 6: {cellWidth: 70}, 7: {cellWidth: 20}, 8: {cellWidth: 20}
+                },
+                didDrawCell: function(data) {
+                    const raw = data.cell.raw;
+                    if (raw && raw.drawMark === true) {
+                        const midX = data.cell.x + data.cell.width / 2;
+                        const midY = data.cell.y + data.cell.height / 2;
+                        doc.setLineWidth(0.6);
+                        if (raw.markType === 'check') {
+                            doc.setDrawColor(22, 163, 74);
+                            doc.line(midX - 2, midY, midX - 0.5, midY + 2);
+                            doc.line(midX - 0.5, midY + 2, midX + 2.5, midY - 2.5);
+                        } else if (raw.markType === 'x') {
+                            doc.setDrawColor(220, 38, 38);
+                            doc.line(midX - 2, midY - 2, midX + 2, midY + 2);
+                            doc.line(midX + 2, midY - 2, midX - 2, midY + 2);
+                        }
+                    }
+                }
+            });
+
+            doc.save(`Daily_Programme_${progDate.replace(/\//g, '-')}.pdf`);
+        }
+    </script>
+</body>
+</html>
