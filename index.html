@@ -14,7 +14,6 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         
-        /* Disable text selection to prevent easy copying */
         body { 
             font-family: 'Inter', sans-serif; 
             background-color: #f8fafc; 
@@ -26,7 +25,7 @@
 
         .vvip-gradient { background: linear-gradient(135deg, #f0f4f0 0%, #fffbeb 100%); }
         .table-input { border: none; width: 100%; background: transparent; font-weight: 600; color: #1e293b; outline: none; }
-        .drag-handle { cursor: grab; color: #94a3b8; }
+        .drag-handle { cursor: grab; color: #94a3b8; padding: 10px; }
         .drag-handle:active { cursor: grabbing; }
         .row-ghost { background-color: #fefce8 !important; opacity: 0.5; }
         
@@ -42,12 +41,9 @@
         .bw-mode { background: white !important; }
         .bw-mode .vvip-gradient { background: white !important; }
         .bw-mode input { color: black !important; }
-        .bw-mode .bg-green-50, .bw-mode .bg-yellow-50, .bw-mode .bg-gray-50 { background-color: white !important; border-bottom: 2px solid black !important; }
-        .bw-mode .text-green-800, .bw-mode .text-yellow-800 { color: black !important; }
         
         .upload-btn { display: none; }
 
-        /* Footer Style */
         footer { 
             margin-top: 2rem; 
             padding: 1.5rem; 
@@ -136,34 +132,34 @@
     </div>
 
     <footer>
-
-© 2026 | LS Publication Dept. | Developed by Charith Neranga
+        Develop by Charith Neranga
     </footer>
 
     <script>
-        // TRICK: Block Keyboard Shortcuts (F12, Ctrl+U, Ctrl+Shift+I, etc.)
+        // Security logic
         document.onkeydown = function(e) {
-            // Disable F12
             if (e.keyCode == 123) return false;
-            // Disable Ctrl+Shift+I (Inspector)
             if (e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
-            // Disable Ctrl+Shift+C (Element Selector)
             if (e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)) return false;
-            // Disable Ctrl+Shift+J (Console)
             if (e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false;
-            // Disable Ctrl+U (View Source)
             if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
-            // Disable Ctrl+S (Save Page)
             if (e.ctrlKey && e.keyCode == 'S'.charCodeAt(0)) return false;
         };
 
-        // Prevent dragging content/images
-        document.addEventListener('dragstart', function(e) { e.preventDefault(); });
-
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
+        // Drag and Drop Initialization
         const horseSort = new Sortable(document.getElementById('horseBody'), { animation: 150, handle: '.drag-handle', ghostClass: 'row-ghost' });
         const greySort = new Sortable(document.getElementById('greyBody'), { animation: 150, handle: '.drag-handle', ghostClass: 'row-ghost' });
+
+        // Add pre-filled meetings on page load
+        window.onload = function() {
+            addRow('horseBody', 'PORTMAN PARK (VR)');
+            addRow('horseBody', 'SPRINT VALLEY (VR)');
+            addRow('horseBody', 'STEEPLEDOWNS (VR)');
+            addRow('greyBody', 'BRUSHWOOD (VR)');
+            addRow('greyBody', 'MILLERSFIELD (VR)');
+        };
 
         function addRow(id, value = "") {
             const body = document.getElementById(id);
@@ -182,21 +178,17 @@
         async function handlePdfUpload(input, tableId) {
             const file = input.files[0];
             if (!file) return;
-
             const reader = new FileReader();
             reader.onload = async function() {
                 const typedarray = new Uint8Array(this.result);
                 const pdf = await pdfjsLib.getDocument(typedarray).promise;
                 let meetingsFound = new Set();
-
                 for (let i = 1; i <= pdf.numPages; i++) {
                     const page = await pdf.getPage(i);
                     const content = await page.getTextContent();
                     const items = content.items;
-                    
                     for (let j = 0; j < items.length; j++) {
                         let str = items[j].str.trim();
-                        
                         if (tableId === 'horseBody') {
                             if (str.includes("Going:")) {
                                 for (let k = j - 1; k >= 0; k--) {
@@ -207,8 +199,7 @@
                                     }
                                 }
                             }
-                        } 
-                        else {
+                        } else {
                             if (/^\([A-Z][a-z]\)$/.test(str)) { 
                                 for (let k = j - 1; k >= 0; k--) {
                                     let prevStr = items[k].str.trim();
@@ -221,11 +212,9 @@
                         }
                     }
                 }
-
                 meetingsFound.forEach(meeting => {
                     const cleanName = meeting.replace(/\(.*\)/, "").trim();
-                    const existing = Array.from(document.querySelectorAll(`#${tableId} .table-input`))
-                                         .some(input => input.value === cleanName);
+                    const existing = Array.from(document.querySelectorAll(`#${tableId} .table-input`)).some(input => input.value === cleanName);
                     if (!existing && cleanName.length > 2) addRow(tableId, cleanName);
                 });
                 input.value = ""; 
@@ -257,12 +246,7 @@
                 if(inputs[0].value.trim() !== "") total++;
                 if(inputs[1].checked) p++;
                 if(inputs[2].checked) np++;
-                return [
-                    `(${index + 1})`, 
-                    inputs[0].value.toUpperCase(), 
-                    {content: "", drawMark: inputs[1].checked, markType: 'check'}, 
-                    {content: "", drawMark: inputs[2].checked, markType: 'x'}
-                ];
+                return [`(${index + 1})`, inputs[0].value.toUpperCase(), {content: "", drawMark: inputs[1].checked, markType: 'check'}, {content: "", drawMark: inputs[2].checked, markType: 'x'}];
             });
             return { rows, total, p, np };
         }
@@ -276,7 +260,6 @@
             doc.text("DAILY RACING PROGRAMME", 148, 15, { align: "center" });
             const tw = doc.getTextWidth("DAILY RACING PROGRAMME");
             doc.line(148 - (tw/2), 17, 148 + (tw/2), 17);
-
             const horse = getTableData('horseBody');
             const grey = getTableData('greyBody');
             const max = Math.max(horse.rows.length, grey.rows.length);
@@ -287,7 +270,6 @@
                 finalBody.push([i===0 ? progDate : "", h[0], h[1], h[2], h[3], g[0], g[1], g[2], g[3]]);
             }
             finalBody.push([{content: 'TOTAL', styles: {fontStyle: 'bold', fillColor: [240, 240, 240]}},{content: horse.total.toString(), styles: {fontStyle: 'bold', halign: 'center'}},'',{content: horse.p.toString(), styles: {fontStyle: 'bold', halign: 'center'}},{content: horse.np.toString(), styles: {fontStyle: 'bold', halign: 'center'}},{content: grey.total.toString(), styles: {fontStyle: 'bold', halign: 'center'}},'',{content: grey.p.toString(), styles: {fontStyle: 'bold', halign: 'center'}},{content: grey.np.toString(), styles: {fontStyle: 'bold', halign: 'center'}}]);
-
             doc.autoTable({
                 startY: 25,
                 head: [['DATE', '', 'HORSE MEETINGS', 'PRINTED', 'NOT PRINTED', '', 'GREYHOUND MEETINGS', 'PRINTED', 'NOT PRINTED']],
@@ -326,7 +308,6 @@
             doc.text("DAILY RACING PROGRAMME", 148, 15, { align: "center" });
             const tw = doc.getTextWidth("DAILY RACING PROGRAMME");
             doc.line(148 - (tw/2), 17, 148 + (tw/2), 17);
-
             const horse = getTableData('horseBody');
             const grey = getTableData('greyBody');
             const max = Math.max(horse.rows.length, grey.rows.length);
@@ -337,7 +318,6 @@
                 finalBody.push([i===0 ? progDate : "", h[0], h[1], h[2], h[3], g[0], g[1], g[2], g[3]]);
             }
             finalBody.push([{content: 'TOTAL', styles: {fontStyle: 'bold'}},{content: horse.total.toString(), styles: {fontStyle: 'bold', halign: 'center'}},'',{content: horse.p.toString(), styles: {fontStyle: 'bold', halign: 'center'}},{content: horse.np.toString(), styles: {fontStyle: 'bold', halign: 'center'}},{content: grey.total.toString(), styles: {fontStyle: 'bold', halign: 'center'}},'',{content: grey.p.toString(), styles: {fontStyle: 'bold', halign: 'center'}},{content: grey.np.toString(), styles: {fontStyle: 'bold', halign: 'center'}}]);
-
             doc.autoTable({
                 startY: 25,
                 head: [['DATE', '', 'HORSE MEETINGS', 'PRINTED', 'NOT PRINTED', '', 'GREYHOUND MEETINGS', 'PRINTED', 'NOT PRINTED']],
