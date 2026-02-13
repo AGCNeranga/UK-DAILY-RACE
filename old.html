@@ -231,8 +231,13 @@
             const hideItems = document.querySelectorAll('.hide-on-export, .drag-handle, button, label');
             hideItems.forEach(el => el.style.opacity = '0');
             const canvas = await html2canvas(element, { scale: 3, backgroundColor: '#ffffff' });
+            
+            // New Filename Logic
+            const rawDate = document.getElementById('progDate').value;
+            const formattedDate = rawDate.replace(/\//g, '.');
+            
             const link = document.createElement('a');
-            link.download = `Racing_Programme_${document.getElementById('progDate').value}.png`;
+            link.download = `(${formattedDate})Daily Racing Programme.png`;
             link.href = canvas.toDataURL("image/png");
             link.click();
             element.classList.remove('bw-mode');
@@ -297,7 +302,10 @@
                     }
                 }
             });
-            doc.save(`Daily_Programme_${progDate.replace(/\//g, '-')}.pdf`);
+            
+            // New Filename Logic
+            const formattedDate = progDate.replace(/\//g, '.');
+            doc.save(`(${formattedDate})Daily Racing Programme.pdf`);
         }
 
         function generatePDFBW() {
@@ -344,9 +352,11 @@
                     }
                 }
             });
-            doc.save(`Daily_Programme_BW_${progDate.replace(/\//g, '-')}.pdf`);
+            
+            // New Filename Logic
+            const formattedDate = progDate.replace(/\//g, '.');
+            doc.save(`(${formattedDate})Daily Racing Programme.pdf`);
         }
     </script>
 </body>
 </html>
-
