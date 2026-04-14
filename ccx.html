@@ -53,6 +53,18 @@
             font-weight: 800; 
             border-top: 1px solid #e2e8f0;
         }
+
+        .select-all-btn {
+            font-size: 8px;
+            padding: 2px 4px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            margin-top: 2px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body class="vvip-gradient min-h-screen p-4 md:p-8" oncontextmenu="return false;">
@@ -65,11 +77,14 @@
             </div>
             
             <div class="flex flex-wrap gap-3">
-                <input type="text" id="progDate" value="14/01/2026" class="border-2 border-yellow-200 rounded-lg p-2 font-bold w-40 text-center focus:border-green-500 transition-colors bg-yellow-50">
-                <button onclick="generatePDF()" class="btn-premium bg-green-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-green-700 uppercase text-sm">PDF Output</button>
-                <button onclick="generatePDFBW()" class="btn-premium bg-gray-800 text-white px-6 py-2 rounded-lg font-bold hover:bg-black uppercase text-sm">Print 2 (B&W)</button>
-                <button onclick="generatePDFSinglePage()" class="btn-premium bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 uppercase text-sm">Print 1 Page (All)</button>
+                <input type="text" id="progDate" value="" oninput="saveToHistory()" class="border-2 border-yellow-200 rounded-lg p-2 font-bold w-40 text-center focus:border-green-500 transition-colors bg-yellow-50">
+                <button onclick="generatePDF()" class="btn-premium bg-green-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-green-700 uppercase text-sm">Print (Colour)</button>
+                <button onclick="generatePDFBW()" class="btn-premium bg-gray-800 text-white px-6 py-2 rounded-lg font-bold hover:bg-black uppercase text-sm">Print (B&W)</button>
+                <button onclick="generatePDFSinglePage(false)" class="btn-premium bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 uppercase text-sm">Print 25 Meeting (Colour)</button>
+                <button onclick="generatePDFSinglePage(true)" class="btn-premium bg-slate-700 text-white px-6 py-2 rounded-lg font-bold hover:bg-slate-900 uppercase text-sm">Print 25 Meeting (B&W)</button>
                 <button onclick="generatePNG()" class="btn-premium bg-yellow-500 text-white px-6 py-2 rounded-lg font-bold hover:bg-yellow-600 uppercase text-sm">PNG Image</button>
+                <button onclick="loadFromHistory()" class="btn-premium bg-purple-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-purple-700 uppercase text-sm">Restore Last</button>
+                <button onclick="clearAllData()" class="btn-premium bg-red-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-red-700 uppercase text-sm">Clear All</button>
             </div>
         </div>
 
@@ -92,8 +107,8 @@
                         <tr>
                             <th class="p-3 w-10"></th>
                             <th class="p-3 text-left">Meeting</th>
-                            <th class="p-3 w-20 text-center">Printed</th>
-                            <th class="p-3 w-20 text-center">Not Printed</th>
+                            <th class="p-3 w-20 text-center">Printed <span class="select-all-btn" onclick="toggleAll('horseBody', 1)">ALL</span></th>
+                            <th class="p-3 w-20 text-center">Not Printed <span class="select-all-btn" onclick="toggleAll('horseBody', 2)">ALL</span></th>
                             <th class="p-3 w-10"></th>
                         </tr>
                     </thead>
@@ -120,8 +135,8 @@
                         <tr>
                             <th class="p-3 w-10"></th>
                             <th class="p-3 text-left">Meeting</th>
-                            <th class="p-3 w-20 text-center">Printed</th>
-                            <th class="p-3 w-20 text-center">Not Printed</th>
+                            <th class="p-3 w-20 text-center">Printed <span class="select-all-btn" onclick="toggleAll('greyBody', 1)">ALL</span></th>
+                            <th class="p-3 w-20 text-center">Not Printed <span class="select-all-btn" onclick="toggleAll('greyBody', 2)">ALL</span></th>
                             <th class="p-3 w-10"></th>
                         </tr>
                     </thead>
@@ -149,29 +164,129 @@
 
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
-        const horseSort = new Sortable(document.getElementById('horseBody'), { animation: 150, handle: '.drag-handle', ghostClass: 'row-ghost' });
-        const greySort = new Sortable(document.getElementById('greyBody'), { animation: 150, handle: '.drag-handle', ghostClass: 'row-ghost' });
+        const horseSort = new Sortable(document.getElementById('horseBody'), { 
+            animation: 150, 
+            handle: '.drag-handle', 
+            ghostClass: 'row-ghost',
+            onEnd: saveToHistory 
+        });
+        const greySort = new Sortable(document.getElementById('greyBody'), { 
+            animation: 150, 
+            handle: '.drag-handle', 
+            ghostClass: 'row-ghost',
+            onEnd: saveToHistory 
+        });
 
         window.onload = function() {
-            addRow('horseBody', 'PORTMAN PARK (VR)');
-            addRow('horseBody', 'SPRINT VALLEY (VR)');
-            addRow('horseBody', 'STEEPLEDOWNS (VR)');
-            addRow('greyBody', 'BRUSHWOOD (VR)');
-            addRow('greyBody', 'MILLERSFIELD (VR)');
+            // Check if there is existing history to load first
+            const hasHistory = loadFromHistory(true); // true means silent load
+
+            if (!hasHistory) {
+                // Set current date only if no history
+                const now = new Date();
+                const day = String(now.getDate()).padStart(2, '0');
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const year = now.getFullYear();
+                document.getElementById('progDate').value = `${day}/${month}/${year}`;
+
+                // Default rows
+                addRow('horseBody', 'PORTMAN PARK (VR)');
+                addRow('horseBody', 'SPRINT VALLEY (VR)');
+                addRow('horseBody', 'STEEPLEDOWNS (VR)');
+                addRow('greyBody', 'BRUSHWOOD (VR)');
+                addRow('greyBody', 'MILLERSFIELD (VR)');
+            }
         };
 
-        function addRow(id, value = "") {
+        function addRow(id, value = "", pChecked = false, npChecked = false) {
             const body = document.getElementById(id);
             const tr = document.createElement('tr');
             tr.className = "border-b border-gray-50 group hover:bg-gray-50 transition-colors";
             tr.innerHTML = `
                 <td class="p-3 text-center drag-handle">⋮⋮</td>
-                <td class="p-3"><input type="text" class="table-input" placeholder="MEETING NAME" value="${value.toUpperCase()}"></td>
-                <td class="p-3 text-center"><input type="checkbox" class="check-p w-4 h-4"></td>
-                <td class="p-3 text-center"><input type="checkbox" class="check-np w-4 h-4"></td>
-                <td class="p-3"><button onclick="this.parentElement.parentElement.remove()" class="text-gray-300 hover:text-red-500 transition-colors hide-on-export">✕</button></td>
+                <td class="p-3"><input type="text" class="table-input" placeholder="MEETING NAME" value="${value.toUpperCase()}" oninput="saveToHistory()"></td>
+                <td class="p-3 text-center"><input type="checkbox" class="check-p w-4 h-4" ${pChecked ? 'checked' : ''} onchange="saveToHistory()"></td>
+                <td class="p-3 text-center"><input type="checkbox" class="check-np w-4 h-4" ${npChecked ? 'checked' : ''} onchange="saveToHistory()"></td>
+                <td class="p-3"><button onclick="this.parentElement.parentElement.remove(); saveToHistory();" class="text-gray-300 hover:text-red-500 transition-colors hide-on-export">✕</button></td>
             `;
             body.appendChild(tr);
+            saveToHistory();
+        }
+
+        function clearAllData() {
+            if(confirm("Are you sure you want to clear all data and history?")) {
+                document.getElementById('horseBody').innerHTML = '';
+                document.getElementById('greyBody').innerHTML = '';
+                localStorage.removeItem('ls_racing_history');
+                
+                const now = new Date();
+                const day = String(now.getDate()).padStart(2, '0');
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const year = now.getFullYear();
+                document.getElementById('progDate').value = `${day}/${month}/${year}`;
+
+                addRow('horseBody', 'PORTMAN PARK (VR)');
+                addRow('horseBody', 'SPRINT VALLEY (VR)');
+                addRow('horseBody', 'STEEPLEDOWNS (VR)');
+                addRow('greyBody', 'BRUSHWOOD (VR)');
+                addRow('greyBody', 'MILLERSFIELD (VR)');
+            }
+        }
+
+        function saveToHistory() {
+            const horseData = Array.from(document.querySelectorAll('#horseBody tr')).map(tr => ({
+                val: tr.querySelector('.table-input').value,
+                p: tr.querySelector('.check-p').checked,
+                np: tr.querySelector('.check-np').checked
+            }));
+            const greyData = Array.from(document.querySelectorAll('#greyBody tr')).map(tr => ({
+                val: tr.querySelector('.table-input').value,
+                p: tr.querySelector('.check-p').checked,
+                np: tr.querySelector('.check-np').checked
+            }));
+            
+            const history = {
+                date: document.getElementById('progDate').value,
+                horse: horseData,
+                grey: greyData
+            };
+            localStorage.setItem('ls_racing_history', JSON.stringify(history));
+        }
+
+        function loadFromHistory(silent = false) {
+            const saved = localStorage.getItem('ls_racing_history');
+            if(!saved) {
+                if(!silent) alert("No history found to restore.");
+                return false;
+            }
+            
+            const history = JSON.parse(saved);
+            
+            // Clear current view
+            document.getElementById('horseBody').innerHTML = '';
+            document.getElementById('greyBody').innerHTML = '';
+            
+            // Restore Date
+            if(history.date) document.getElementById('progDate').value = history.date;
+            
+            // Restore Rows
+            if(history.horse) history.horse.forEach(item => addRow('horseBody', item.val, item.p, item.np));
+            if(history.grey) history.grey.forEach(item => addRow('greyBody', item.val, item.p, item.np));
+            
+            if(!silent) alert("Last session data restored successfully!");
+            return true;
+        }
+
+        function toggleAll(tableId, checkboxIndex) {
+            const rows = document.querySelectorAll(`#${tableId} tr`);
+            let allChecked = true;
+            rows.forEach(row => {
+                if(!row.querySelectorAll('input[type="checkbox"]')[checkboxIndex-1].checked) allChecked = false;
+            });
+            rows.forEach(row => {
+                row.querySelectorAll('input[type="checkbox"]')[checkboxIndex-1].checked = !allChecked;
+            });
+            saveToHistory();
         }
 
         async function handlePdfUpload(input, tableId) {
@@ -226,7 +341,7 @@
             const title = document.getElementById('main-title');
             element.classList.add('bw-mode');
             title.style.textDecoration = "underline";
-            const hideItems = document.querySelectorAll('.hide-on-export, .drag-handle, button, label');
+            const hideItems = document.querySelectorAll('.hide-on-export, .drag-handle, button, label, .select-all-btn');
             hideItems.forEach(el => el.style.opacity = '0');
             const canvas = await html2canvas(element, { scale: 3, backgroundColor: '#ffffff' });
             const rawDate = document.getElementById('progDate').value;
@@ -349,7 +464,7 @@
             doc.save(`(${formattedDate})Daily Racing Programme.pdf`);
         }
 
-        function generatePDFSinglePage() {
+        function generatePDFSinglePage(isBW = false) {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF('l', 'mm', 'a4');
             const progDate = document.getElementById('progDate').value;
@@ -357,16 +472,15 @@
             doc.setFont("helvetica", "bold");
             doc.setFontSize(20);
             doc.text("DAILY RACING PROGRAMME", 148, 12, { align: "center" });
+            const tw = doc.getTextWidth("DAILY RACING PROGRAMME");
+            doc.setLineWidth(0.5);
+            doc.line(148 - (tw/2), 13.5, 148 + (tw/2), 13.5);
             
             const horse = getTableData('horseBody');
             const grey = getTableData('greyBody');
             const rowCount = Math.max(horse.rows.length, grey.rows.length);
+            const totalLines = rowCount + 1;
             
-            // Calculate height available (A4 height is 210mm - margins - header)
-            const availableHeight = 180; 
-            const totalLines = rowCount + 1; // +1 for Footer
-            
-            // Dynamic scaling based on line count
             let dynamicFontSize = 9.5;
             let dynamicPadding = 2;
             let iconScale = 1;
@@ -381,7 +495,17 @@
                 const g = grey.rows[i] || ["", "", {content:""}, {content:""}];
                 finalBody.push([i===0 ? progDate : "", h[0], h[1], h[2], h[3], g[0], g[1], g[2], g[3]]);
             }
-            finalBody.push([{content: 'TOTAL', styles: {fontStyle: 'bold'}},{content: horse.total.toString(), styles: {fontStyle: 'bold', halign: 'center'}},'',{content: horse.p.toString(), styles: {fontStyle: 'bold', halign: 'center'}},{content: horse.np.toString(), styles: {fontStyle: 'bold', halign: 'center'}},{content: grey.total.toString(), styles: {fontStyle: 'bold', halign: 'center'}},'',{content: grey.p.toString(), styles: {fontStyle: 'bold', halign: 'center'}},{content: grey.np.toString(), styles: {fontStyle: 'bold', halign: 'center'}}]);
+            finalBody.push([
+                {content: 'TOTAL', styles: {fontStyle: 'bold', fillColor: isBW ? [255, 255, 255] : [240, 240, 240]}},
+                {content: horse.total.toString(), styles: {fontStyle: 'bold', halign: 'center', fillColor: isBW ? [255, 255, 255] : [240, 240, 240]}},
+                {content: '', styles: {fillColor: isBW ? [255, 255, 255] : [240, 240, 240]}},
+                {content: horse.p.toString(), styles: {fontStyle: 'bold', halign: 'center', fillColor: isBW ? [255, 255, 255] : [240, 240, 240]}},
+                {content: horse.np.toString(), styles: {fontStyle: 'bold', halign: 'center', fillColor: isBW ? [255, 255, 255] : [240, 240, 240]}},
+                {content: grey.total.toString(), styles: {fontStyle: 'bold', halign: 'center', fillColor: isBW ? [255, 255, 255] : [240, 240, 240]}},
+                {content: '', styles: {fillColor: isBW ? [255, 255, 255] : [240, 240, 240]}},
+                {content: grey.p.toString(), styles: {fontStyle: 'bold', halign: 'center', fillColor: isBW ? [255, 255, 255] : [240, 240, 240]}},
+                {content: grey.np.toString(), styles: {fontStyle: 'bold', halign: 'center', fillColor: isBW ? [255, 255, 255] : [240, 240, 240]}}
+            ]);
 
             doc.autoTable({
                 startY: 18,
@@ -389,7 +513,7 @@
                 body: finalBody,
                 theme: 'grid',
                 styles: { font: "helvetica", lineColor: [0, 0, 0], lineWidth: 0.2, textColor: [0, 0, 0], fontSize: dynamicFontSize, cellPadding: dynamicPadding },
-                headStyles: { fillColor: [245, 245, 245], fontStyle: 'bold', halign: 'center' },
+                headStyles: { fillColor: isBW ? [255, 255, 255] : [245, 245, 245], fontStyle: 'bold', halign: 'center', textColor: [0, 0, 0] },
                 columnStyles: { 0: {cellWidth: 22}, 1: {cellWidth: 8, halign: 'center'}, 2: {cellWidth: 75}, 3: {cellWidth: 18}, 4: {cellWidth: 18}, 5: {cellWidth: 8, halign: 'center'}, 6: {cellWidth: 75}, 7: {cellWidth: 18}, 8: {cellWidth: 18} },
                 margin: { bottom: 10 },
                 didDrawCell: function(data) {
@@ -397,8 +521,15 @@
                     if (raw && raw.drawMark === true) {
                         const midX = data.cell.x + data.cell.width / 2;
                         const midY = data.cell.y + data.cell.height / 2;
-                        doc.setLineWidth(0.4 * iconScale);
-                        doc.setDrawColor(0, 0, 0);
+                        doc.setLineWidth(0.5 * iconScale);
+                        
+                        if (isBW) {
+                            doc.setDrawColor(0, 0, 0);
+                        } else {
+                            if (raw.markType === 'check') doc.setDrawColor(22, 163, 74);
+                            else doc.setDrawColor(220, 38, 38);
+                        }
+
                         if (raw.markType === 'check') {
                             doc.line(midX - (1.5 * iconScale), midY, midX - (0.5 * iconScale), midY + (1.5 * iconScale));
                             doc.line(midX - (0.5 * iconScale), midY + (1.5 * iconScale), midX + (2 * iconScale), midY - (2 * iconScale));
@@ -411,7 +542,8 @@
             });
 
             const formattedDate = progDate.replace(/\//g, '.');
-            doc.save(`(SinglePage_${formattedDate})Daily Racing Programme.pdf`);
+            const suffix = isBW ? 'B&W' : 'Colour';
+            doc.save(`(SinglePage_${suffix}_${formattedDate})Daily Racing Programme.pdf`);
         }
     </script>
 </body>
