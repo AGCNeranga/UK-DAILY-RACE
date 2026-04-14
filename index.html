@@ -65,9 +65,38 @@
             margin-right: auto;
             cursor: pointer;
         }
+
+        /* Floating Badge Style */
+        #stat-badge {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            background: #1e293b;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 50px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            z-index: 100;
+            display: flex;
+            gap: 15px;
+            font-weight: 800;
+            font-size: 0.8rem;
+            border: 2px solid #334155;
+        }
     </style>
 </head>
 <body class="vvip-gradient min-h-screen p-4 md:p-8" oncontextmenu="return false;">
+
+    <div id="stat-badge" class="hide-on-export">
+        <div class="flex items-center gap-2">
+            <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+            PRINTED: <span id="badge-p">0</span>
+        </div>
+        <div class="flex items-center gap-2 border-l border-gray-600 pl-4">
+            <span class="w-2 h-2 bg-red-500 rounded-full"></span>
+            NOT PRINTED: <span id="badge-np">0</span>
+        </div>
+    </div>
 
     <div id="capture-area" class="max-w-7xl mx-auto bg-white shadow-2xl rounded-2xl overflow-hidden border border-gray-200">
         <div id="header-section" class="bg-white px-8 py-6 border-b-2 border-green-100 flex flex-col md:flex-row justify-between items-center gap-6">
@@ -77,12 +106,17 @@
             </div>
             
             <div class="flex flex-wrap gap-3">
-                <input type="text" id="progDate" value="" class="border-2 border-yellow-200 rounded-lg p-2 font-bold w-40 text-center focus:border-green-500 transition-colors bg-yellow-50">
+                <div class="flex gap-1">
+                    <input type="text" id="progDate" value="" oninput="saveToHistory()" class="border-2 border-yellow-200 rounded-l-lg p-2 font-bold w-40 text-center focus:border-green-500 transition-colors bg-yellow-50">
+                    <button onclick="setTomorrow()" class="bg-yellow-100 border-2 border-l-0 border-yellow-200 rounded-r-lg px-2 text-[10px] font-black text-yellow-700 hover:bg-yellow-200 uppercase">Tomorrow</button>
+                </div>
                 <button onclick="generatePDF()" class="btn-premium bg-green-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-green-700 uppercase text-sm">Print (Colour)</button>
                 <button onclick="generatePDFBW()" class="btn-premium bg-gray-800 text-white px-6 py-2 rounded-lg font-bold hover:bg-black uppercase text-sm">Print (B&W)</button>
                 <button onclick="generatePDFSinglePage(false)" class="btn-premium bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 uppercase text-sm">Print 25 Meeting (Colour)</button>
                 <button onclick="generatePDFSinglePage(true)" class="btn-premium bg-slate-700 text-white px-6 py-2 rounded-lg font-bold hover:bg-slate-900 uppercase text-sm">Print 25 Meeting (B&W)</button>
                 <button onclick="generatePNG()" class="btn-premium bg-yellow-500 text-white px-6 py-2 rounded-lg font-bold hover:bg-yellow-600 uppercase text-sm">PNG Image</button>
+                <button onclick="loadFromHistory()" class="btn-premium bg-purple-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-purple-700 uppercase text-sm">Restore Last</button>
+                <button onclick="clearAllData()" class="btn-premium bg-red-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-red-700 uppercase text-sm">Clear All</button>
             </div>
         </div>
 
@@ -98,7 +132,21 @@
                             <input type="file" class="upload-btn" accept=".pdf" onchange="handlePdfUpload(this, 'horseBody')">
                         </label>
                     </div>
-                    <button onclick="addRow('horseBody')" class="bg-green-600 text-white text-xs px-3 py-1.5 rounded-md font-bold hover:bg-green-700 transition-all hide-on-export">+ ADD NEW</button>
+                    <div class="flex gap-2">
+                        <select onchange="if(this.value) { addRow('horseBody', this.value); this.value=''; }" class="text-[10px] font-bold border-2 border-green-200 rounded px-2 bg-white hide-on-export">
+                            <option value="">QUICK ADD</option>
+                            <option value="ASCOT">ASCOT</option>
+                            <option value="YORK">YORK</option>
+                            <option value="CHELTENHAM">CHELTENHAM</option>
+                            <option value="AINTREE">AINTREE</option>
+                            <option value="NEWMARKET">NEWMARKET</option>
+                            <option value="GOODWOOD">GOODWOOD</option>
+                            <option value="DONCASTER">DONCASTER</option>
+                            <option value="EPSOM">EPSOM</option>
+                            <option value="SANDOWN">SANDOWN</option>
+                        </select>
+                        <button onclick="addRow('horseBody')" class="bg-green-600 text-white text-xs px-3 py-1.5 rounded-md font-bold hover:bg-green-700 transition-all hide-on-export">+ ADD NEW</button>
+                    </div>
                 </div>
                 <table class="w-full">
                     <thead class="bg-gray-50 text-[10px] uppercase text-gray-500 font-bold border-b border-gray-100">
@@ -126,7 +174,21 @@
                             <input type="file" class="upload-btn" accept=".pdf" onchange="handlePdfUpload(this, 'greyBody')">
                         </label>
                     </div>
-                    <button onclick="addRow('greyBody')" class="bg-yellow-600 text-white text-xs px-3 py-1.5 rounded-md font-bold hover:bg-yellow-700 transition-all hide-on-export">+ ADD NEW</button>
+                    <div class="flex gap-2">
+                        <select onchange="if(this.value) { addRow('greyBody', this.value); this.value=''; }" class="text-[10px] font-bold border-2 border-yellow-200 rounded px-2 bg-white hide-on-export">
+                            <option value="">QUICK ADD</option>
+                            <option value="ROMFORD">ROMFORD</option>
+                            <option value="HOVE">HOVE</option>
+                            <option value="MONMORE">MONMORE</option>
+                            <option value="CENTRAL PARK">CENTRAL PARK</option>
+                            <option value="OXFORD">OXFORD</option>
+                            <option value="TOWCESTER">TOWCESTER</option>
+                            <option value="NEWCASTLE">NEWCASTLE</option>
+                            <option value="SHEFFIELD">SHEFFIELD</option>
+                            <option value="SUNDERLAND">SUNDERLAND</option>
+                        </select>
+                        <button onclick="addRow('greyBody')" class="bg-yellow-600 text-white text-xs px-3 py-1.5 rounded-md font-bold hover:bg-yellow-700 transition-all hide-on-export">+ ADD NEW</button>
+                    </div>
                 </div>
                 <table class="w-full">
                     <thead class="bg-gray-50 text-[10px] uppercase text-gray-500 font-bold border-b border-gray-100">
@@ -162,36 +224,126 @@
 
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
-        const horseSort = new Sortable(document.getElementById('horseBody'), { animation: 150, handle: '.drag-handle', ghostClass: 'row-ghost' });
-        const greySort = new Sortable(document.getElementById('greyBody'), { animation: 150, handle: '.drag-handle', ghostClass: 'row-ghost' });
+        const horseSort = new Sortable(document.getElementById('horseBody'), { 
+            animation: 150, 
+            handle: '.drag-handle', 
+            ghostClass: 'row-ghost',
+            onEnd: saveToHistory 
+        });
+        const greySort = new Sortable(document.getElementById('greyBody'), { 
+            animation: 150, 
+            handle: '.drag-handle', 
+            ghostClass: 'row-ghost',
+            onEnd: saveToHistory 
+        });
 
         window.onload = function() {
-            // Set current date
+            const hasHistory = loadFromHistory(true); 
+
+            if (!hasHistory) {
+                setCurrentDate();
+                addRow('horseBody', 'PORTMAN PARK (VR)');
+                addRow('horseBody', 'SPRINT VALLEY (VR)');
+                addRow('horseBody', 'STEEPLEDOWNS (VR)');
+                addRow('greyBody', 'BRUSHWOOD (VR)');
+                addRow('greyBody', 'MILLERSFIELD (VR)');
+            }
+            updateBadge();
+        };
+
+        function setCurrentDate() {
             const now = new Date();
             const day = String(now.getDate()).padStart(2, '0');
             const month = String(now.getMonth() + 1).padStart(2, '0');
             const year = now.getFullYear();
             document.getElementById('progDate').value = `${day}/${month}/${year}`;
+        }
 
-            addRow('horseBody', 'PORTMAN PARK (VR)');
-            addRow('horseBody', 'SPRINT VALLEY (VR)');
-            addRow('horseBody', 'STEEPLEDOWNS (VR)');
-            addRow('greyBody', 'BRUSHWOOD (VR)');
-            addRow('greyBody', 'MILLERSFIELD (VR)');
-        };
+        function setTomorrow() {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const day = String(tomorrow.getDate()).padStart(2, '0');
+            const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+            const year = tomorrow.getFullYear();
+            document.getElementById('progDate').value = `${day}/${month}/${year}`;
+            saveToHistory();
+        }
 
-        function addRow(id, value = "") {
+        function updateBadge() {
+            const printed = document.querySelectorAll('input.check-p:checked').length;
+            const notPrinted = document.querySelectorAll('input.check-np:checked').length;
+            document.getElementById('badge-p').innerText = printed;
+            document.getElementById('badge-np').innerText = notPrinted;
+        }
+
+        function addRow(id, value = "", pChecked = false, npChecked = false) {
             const body = document.getElementById(id);
             const tr = document.createElement('tr');
             tr.className = "border-b border-gray-50 group hover:bg-gray-50 transition-colors";
             tr.innerHTML = `
                 <td class="p-3 text-center drag-handle">⋮⋮</td>
-                <td class="p-3"><input type="text" class="table-input" placeholder="MEETING NAME" value="${value.toUpperCase()}"></td>
-                <td class="p-3 text-center"><input type="checkbox" class="check-p w-4 h-4"></td>
-                <td class="p-3 text-center"><input type="checkbox" class="check-np w-4 h-4"></td>
-                <td class="p-3"><button onclick="this.parentElement.parentElement.remove()" class="text-gray-300 hover:text-red-500 transition-colors hide-on-export">✕</button></td>
+                <td class="p-3"><input type="text" class="table-input" placeholder="MEETING NAME" value="${value.toUpperCase()}" oninput="saveToHistory()"></td>
+                <td class="p-3 text-center"><input type="checkbox" class="check-p w-4 h-4" ${pChecked ? 'checked' : ''} onchange="saveToHistory(); updateBadge();"></td>
+                <td class="p-3 text-center"><input type="checkbox" class="check-np w-4 h-4" ${npChecked ? 'checked' : ''} onchange="saveToHistory(); updateBadge();"></td>
+                <td class="p-3"><button onclick="this.parentElement.parentElement.remove(); saveToHistory(); updateBadge();" class="text-gray-300 hover:text-red-500 transition-colors hide-on-export">✕</button></td>
             `;
             body.appendChild(tr);
+            saveToHistory();
+            updateBadge();
+        }
+
+        function clearAllData() {
+            if(confirm("Are you sure you want to clear all data and history?")) {
+                document.getElementById('horseBody').innerHTML = '';
+                document.getElementById('greyBody').innerHTML = '';
+                localStorage.removeItem('ls_racing_history');
+                setCurrentDate();
+                addRow('horseBody', 'PORTMAN PARK (VR)');
+                addRow('horseBody', 'SPRINT VALLEY (VR)');
+                addRow('horseBody', 'STEEPLEDOWNS (VR)');
+                addRow('greyBody', 'BRUSHWOOD (VR)');
+                addRow('greyBody', 'MILLERSFIELD (VR)');
+                updateBadge();
+            }
+        }
+
+        function saveToHistory() {
+            const horseData = Array.from(document.querySelectorAll('#horseBody tr')).map(tr => ({
+                val: tr.querySelector('.table-input').value,
+                p: tr.querySelector('.check-p').checked,
+                np: tr.querySelector('.check-np').checked
+            }));
+            const greyData = Array.from(document.querySelectorAll('#greyBody tr')).map(tr => ({
+                val: tr.querySelector('.table-input').value,
+                p: tr.querySelector('.check-p').checked,
+                np: tr.querySelector('.check-np').checked
+            }));
+            
+            const history = {
+                date: document.getElementById('progDate').value,
+                horse: horseData,
+                grey: greyData
+            };
+            localStorage.setItem('ls_racing_history', JSON.stringify(history));
+        }
+
+        function loadFromHistory(silent = false) {
+            const saved = localStorage.getItem('ls_racing_history');
+            if(!saved) {
+                if(!silent) alert("No history found to restore.");
+                return false;
+            }
+            
+            const history = JSON.parse(saved);
+            document.getElementById('horseBody').innerHTML = '';
+            document.getElementById('greyBody').innerHTML = '';
+            if(history.date) document.getElementById('progDate').value = history.date;
+            if(history.horse) history.horse.forEach(item => addRow('horseBody', item.val, item.p, item.np));
+            if(history.grey) history.grey.forEach(item => addRow('greyBody', item.val, item.p, item.np));
+            
+            if(!silent) alert("Last session data restored successfully!");
+            updateBadge();
+            return true;
         }
 
         function toggleAll(tableId, checkboxIndex) {
@@ -203,6 +355,8 @@
             rows.forEach(row => {
                 row.querySelectorAll('input[type="checkbox"]')[checkboxIndex-1].checked = !allChecked;
             });
+            saveToHistory();
+            updateBadge();
         }
 
         async function handlePdfUpload(input, tableId) {
@@ -257,7 +411,7 @@
             const title = document.getElementById('main-title');
             element.classList.add('bw-mode');
             title.style.textDecoration = "underline";
-            const hideItems = document.querySelectorAll('.hide-on-export, .drag-handle, button, label, .select-all-btn');
+            const hideItems = document.querySelectorAll('.hide-on-export, .drag-handle, button, label, .select-all-btn, select, #stat-badge');
             hideItems.forEach(el => el.style.opacity = '0');
             const canvas = await html2canvas(element, { scale: 3, backgroundColor: '#ffffff' });
             const rawDate = document.getElementById('progDate').value;
